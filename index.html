@@ -37,6 +37,7 @@
             font-size: 20px;
             float: right;
             padding: 0 10px;
+            margin: 0 2px;
         }
         #map {
             width: 100vw;
@@ -67,6 +68,7 @@
     <input type="text" id="mot" name="mot"/>
     <br><br>
     <input type="button" id="submit" value="Chercher">
+    <input type="button" id="stop" value="Arrêter">
 </form>
 
 <div id="map"></div>
@@ -100,6 +102,10 @@
     socket.on('connected', function (data) {
         console.log(data);
         socket.emit('client_connected', 'Client connecte');
+    });
+
+    document.querySelector("#tri_tweet #stop").addEventListener("click", function (e) {
+        socket.emit('stop');
     });
 
     document.querySelector("#tri_tweet #submit").addEventListener("click", function (e) {

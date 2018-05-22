@@ -53,10 +53,16 @@ socketIo.on("connection", socket => {
         console.log(data);
     });
 
+    let tw;
+
     socket.on('filtre', (data) => {
         console.log(data);
-        const tw = new TwitterStream(cfg,data);
+        tw = new TwitterStream(cfg,data);
         tw.pipe(socketStream);
+    });
+
+    socket.on('stop', () => {
+        tw.destroy();
     });
 
 });
