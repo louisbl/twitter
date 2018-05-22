@@ -14,12 +14,9 @@ class TwitterStream extends Readable {
     connect(query)
     {
         this.stream = this.client.stream("statuses/filter", { track : query });
-        this.stream.on("data",tweet => this.push(tweet));
+        this.stream.on("data",tweet => this.push({'error':false, 'data':tweet}));
 
-        this.stream.on("error", function (error) {
-            console.log(error)
-            console.log("Erreur - Veuillez recommencer dans un petit moment")
-        })
+        this.stream.on("error",  error => this.push({'error':true, 'data':error}))
     }
 }
 

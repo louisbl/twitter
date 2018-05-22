@@ -41,7 +41,7 @@
         }
         #map {
             width: 100vw;
-            height: 99vh;
+            height: 100vh;
         }
 
         h1
@@ -55,6 +55,46 @@
             text-align: center;
             text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.6);
             font-family: system-ui;
+            width: 60%;
+        }
+
+        .popup
+        {
+            width: auto;
+            max-width: 40%;
+            height: auto;
+            padding: 30px 45px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            background-color: white;
+            //transform: translate(-50%,-50%);
+            font-family: system-ui;
+            border-radius: 5px;
+        }
+        h2
+        {
+            color: #1da1f2;
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 25px;
+        }
+        .texte
+        {
+            margin-bottom: 30px;
+        }
+        .lien
+        {
+            color: #1da1f2;
+            text-decoration: none;
+        }
+        .lien2
+        {
+            float: right;
+        }
+        .lien:hover
+        {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -74,8 +114,12 @@
 <div id="map"></div>
 </body>
 
-<div class="tweet">
 
+<div class="popup">
+    <h2 class="titre">Cliquer sur un utilisateur pour voir son tweet</h2>
+    <div class="texte"></div>
+    <a class="lien lien1"></a>
+    <a class="lien container_lien2"></a>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -85,8 +129,7 @@
 <script>
     let paris = {lat: 48.856614, lng: 2.3522219};
     let map;
-
-    let listCords = [];
+    let markers = [];
 
     //init map avec Paris comme centre
     function initMap() {
@@ -96,7 +139,15 @@
         });
     }
 
+    function setMapOnAll(map) {
+        for (let i = 0; i < markers.length; i++) {
+            markers[i].setMap(map);
+        }
+    }
 
+    function clearMarkers() {
+        setMapOnAll(null)
+    }
 
     let socket = io('http://localhost:5000');
     socket.on('connected', function (data) {
@@ -109,63 +160,67 @@
     });
 
     document.querySelector("#tri_tweet #submit").addEventListener("click", function (e) {
+
+        clearMarkers();
+        markers = [];
+
         socket.emit('filtre', document.querySelector("#mot").value);
         console.log(document.querySelector("#mot").value);
-        document.querySelector('.tweet').innerHTML = "";
     });
+
+    socket.on('error', function (data) {
+        alert(data);
+    })
 
     socket.on('tweet', function (data, latitude, longitude) {
 
         console.log(data);
 
-        if(latitude !== undefined && latitude !== null)
+        if(latitude !== undefined && latitude !== null && data)
         {
-            let img = document.createElement("img");
-            img.src = data.user.profile_image_url;
-            img.alt = data.user.created_at;
-            img.title = data.user.created_at;
-            document.querySelector('.tweet').appendChild(img);
 
             let location = {lat: latitude, lng: longitude}
 
             console.log(data);
 
-            //remplis un tableau de coords pour faire une hitmap
-            //listCords.push({location});
-            //parcoursCoord(listCords);
-
             let marker = new google.maps.Marker({
                 position: location,
                 map: map,
                 title: data.user.screen_name,
-                icon: data.user.profile_image_url
+                icon: data.user.profile_image_url,
+                idTweet: data.id_str,
+                tweetText: data.text
             });
 
+            markers.push(marker);
 
             marker.addListener('click', function() {
-                window.open(
-                    'https://twitter.com/'+data.user.screen_name,
-                    '_blank' // <- This is what makes it open in a new window.
-                );
+
+                document.querySelector(".titre").innerHTML = "Tweet";
+
+                let popup = document.querySelector(".popup");
+                let texte = document.querySelector(".texte");
+                texte.innerHTML = marker.tweetText;
+
+                let btn1 = document.querySelector(".lien1");
+                btn1.innerHTML = "Voir tweet";
+                btn1.href = "https://twitter.com/"+marker.title+"/status/"+marker.idTweet;
+                btn1.target = "_blank"
+
+                let btn2 = document.createElement("span");
+                btn2.classList.add('lien2')
+                btn2.innerHTML = "Retweeter";
+
+                btn2.addEventListener("click", function (e) {
+                    socket.emit('retweet', {id : marker.idTweet});
+                    alert('Votre retweet à été effectué')
+                });
+
+                document.querySelector('.container_lien2').innerHTML = "";
+                document.querySelector('.container_lien2').appendChild(btn2);
+
             });
 
-
-        }
-
-        //parcours le tableau et crée une hitmap
-        function parcoursCoord(results) {
-            console.log(results);
-            let heatmapData = [];
-            for (let i = 0; i < results.length; i++) {
-                let coords = results[i].location;
-                let latLng = new google.maps.LatLng(coords.lat, coords.lng);
-                heatmapData.push(latLng);
-            }
-            let heatmap = new google.maps.visualization.HeatmapLayer({
-                data: heatmapData,
-                dissipating: false,
-                map: map
-            });
         }
     });
 </script>
