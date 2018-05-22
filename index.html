@@ -1,0 +1,166 @@
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Twitter Locator Themes</title>
+    <style>
+        body
+        {
+            background: black;
+            margin: 0;
+            padding: 0;
+        }
+        form
+        {
+            position: absolute;
+            z-index: 10000;
+            background-color: rgba(0,0,0,0.5);
+            padding: 20px;
+        }
+        form label
+        {
+            font-size: 25px;
+            color: white;
+            font-family: system-ui;
+            text-align: left;
+        }
+        form input[type=text]
+        {
+            width: 100%;
+            border: none;
+            height: 30px;
+            font-size: 22px;
+        }
+        form input[type=button]
+        {
+            border: none;
+            height: 30px;
+            font-size: 20px;
+            float: right;
+            padding: 0 10px;
+        }
+        #map {
+            width: 100vw;
+            height: 99vh;
+        }
+
+        h1
+        {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            z-index: 100;
+            text-align: center;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.6);
+            font-family: system-ui;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Entrez un thème et regardez dans quelle partie du monde il est le plus parlé sur twitter</h1>
+
+<form id="tri_tweet">
+    <label for="mot">Thème</label>
+    <br><br>
+    <input type="text" id="mot" name="mot"/>
+    <br><br>
+    <input type="button" id="submit" value="Chercher">
+</form>
+
+<div id="map"></div>
+</body>
+
+<div class="tweet">
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCUlKIUdqbbeU_9_KVMj2pmHnXanevEGws&libraries=visualization&callback=initMap">
+</script>
+<script>
+    let paris = {lat: 48.856614, lng: 2.3522219};
+    let map;
+
+    let listCords = [];
+
+    //init map avec Paris comme centre
+    function initMap() {
+         map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 4,
+            center: paris
+        });
+    }
+
+
+
+    let socket = io('http://localhost:5000');
+    socket.on('connected', function (data) {
+        console.log(data);
+        socket.emit('client_connected', 'Client connecte');
+    });
+
+    document.querySelector("#tri_tweet #submit").addEventListener("click", function (e) {
+        socket.emit('filtre', document.querySelector("#mot").value);
+        console.log(document.querySelector("#mot").value);
+        document.querySelector('.tweet').innerHTML = "";
+    });
+
+    socket.on('tweet', function (data, latitude, longitude) {
+
+        console.log(data);
+
+        if(latitude !== undefined && latitude !== null)
+        {
+            let img = document.createElement("img");
+            img.src = data.user.profile_image_url;
+            img.alt = data.user.created_at;
+            img.title = data.user.created_at;
+            document.querySelector('.tweet').appendChild(img);
+
+            let location = {lat: latitude, lng: longitude}
+
+            console.log(data);
+
+            //remplis un tableau de coords pour faire une hitmap
+            //listCords.push({location});
+            //parcoursCoord(listCords);
+
+            let marker = new google.maps.Marker({
+                position: location,
+                map: map,
+                title: data.user.screen_name,
+                icon: data.user.profile_image_url
+            });
+
+
+            marker.addListener('click', function() {
+                window.open(
+                    'https://twitter.com/'+data.user.screen_name,
+                    '_blank' // <- This is what makes it open in a new window.
+                );
+            });
+
+
+        }
+
+        //parcours le tableau et crée une hitmap
+        function parcoursCoord(results) {
+            console.log(results);
+            let heatmapData = [];
+            for (let i = 0; i < results.length; i++) {
+                let coords = results[i].location;
+                let latLng = new google.maps.LatLng(coords.lat, coords.lng);
+                heatmapData.push(latLng);
+            }
+            let heatmap = new google.maps.visualization.HeatmapLayer({
+                data: heatmapData,
+                dissipating: false,
+                map: map
+            });
+        }
+    });
+</script>
+</html>
