@@ -12,10 +12,10 @@ let client = new MapboxClient('pk.eyJ1IjoidGNoYW5ldCIsImEiOiJjamd3MzJ4NHYxcGRoMn
 
 //Rentrer ses infos
 const cfg = {
-    consumer_key: 'xeSgE5wySSZguNGibwY08SN38',
-    consumer_secret: 'uEjKDfatGbjFqaduhPjkxqveR63qAmcO0YtrbnB6LHOFHZ9o2R',
-    access_token_key: '705541956-lgS1a32TVyxcoB0gAgknDxcCsJ9vacJQfpOpGrKM',
-    access_token_secret: 'j0OF7N2mKwSDVFJVY1K99lATalz9LT8ke1wVYqTyuZAZi'
+    consumer_key: '',
+    consumer_secret: '',
+    access_token_key: '',
+    access_token_secret: ''
 };
 
 let clientTwitter = new Twitter(cfg);
