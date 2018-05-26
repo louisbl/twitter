@@ -8,38 +8,28 @@ const Twitter = require('twitter');
 // utilisation de mapbox pour transformer une ville en coordonnées
 let MapboxClient = require('mapbox');
 
-
 let client = new MapboxClient('pk.eyJ1IjoidGNoYW5ldCIsImEiOiJjamd3MzJ4NHYxcGRoMndvZnpicXNndWR6In0.6ywbnPqqgi84ElYQUh32Sw');
-
 
 //Rentrer ses infos
 const cfg = {
-    consumer_key: '',
-    consumer_secret: '',
-    access_token_key: '',
-    access_token_secret: ''
+    consumer_key: 'xeSgE5wySSZguNGibwY08SN38',
+    consumer_secret: 'uEjKDfatGbjFqaduhPjkxqveR63qAmcO0YtrbnB6LHOFHZ9o2R',
+    access_token_key: '705541956-lgS1a32TVyxcoB0gAgknDxcCsJ9vacJQfpOpGrKM',
+    access_token_secret: 'j0OF7N2mKwSDVFJVY1K99lATalz9LT8ke1wVYqTyuZAZi'
 };
 
 let clientTwitter = new Twitter(cfg);
 
-const stringify = new Transform({
-    writableObjectMode : true,
-
-    transform(chunk, encoding, callback)
-    {
-        this.push(JSON.stringify(chunk)+ '\n');
-        callback();
-    }
-});
-
+//création du serveur et de socketIO
 const server = http.createServer();
 const socketIo = io(server);
 
 server.on("request",(request,response) => {
 
+    //route principal
     if(request.url === "/")
     {
-        //home
+        //home -> index.html
         const fileSrc = fs.createReadStream("./index.html", {'encoding': 'utf-8'});
         fileSrc.setEncoding('utf-8');
         fileSrc.pipe(response);
@@ -48,6 +38,7 @@ server.on("request",(request,response) => {
 
 });
 
+//lancement sur port 5000
 server.listen(5000);
 
 socketIo.on("connection", socket => {
@@ -59,31 +50,31 @@ socketIo.on("connection", socket => {
     });
 
     let tw;
-
     socket.on('filtre', (data) => {
         console.log(data);
         tw = new TwitterStream(cfg,data);
+        //passage dans les différents transform avant d'afficher les tweets
         tw.pipe(errorTransform).pipe(tweetTransform).pipe(socketStream);
     });
 
+    //arrete l'envoi des tweets
     socket.on('stop', () => {
         tw.destroy();
     });
 
     socket.on('retweet', (data) => {
-        console.log(data.id)
-
         let tweetId = data.id;
+        //requetes pour retweeter avec le compte rentré plus haut
         clientTwitter.post('statuses/retweet/' + tweetId, function(error, tweet, response) {
             if (!error) {
-                console.log(tweet);
+                console.log("Retweet");
             }
-            console.log(error)
         });
     });
 
 });
 
+//previens le client si il y a une erreur sinon continue
 const errorTransform = new Transform
 ({
     readableObjectMode: true,
@@ -91,7 +82,6 @@ const errorTransform = new Transform
 
     transform(tweet, _, callback )
     {
-        console.log(tweet.error);
         if(tweet.error)
         {
             socketIo.emit("error","Une erreur est survenue, veuillez réessayer de rafraichir la page dans quelques instants")
@@ -100,11 +90,11 @@ const errorTransform = new Transform
         {
             this.push(tweet.data)
         }
-
         callback();
     }
 })
 
+//traitement sur le tweet pour filtrer les tweets qui n'ont pas de localisation
 const tweetTransform = new Transform
 ({
     readableObjectMode: true,
@@ -116,18 +106,17 @@ const tweetTransform = new Transform
         {
             this.push(tweet)
         }
-
         callback();
     }
 })
 
+//ecriture du tweet traité
 const socketStream = new Writable
 ({
     objectMode: true,
 
     write(tweet, _, callback)
     {
-
             //envoie au client les coordonnées géo de celui qui à twitté
             client.geocodeForward(tweet.user.location,{})
               .then(function(res) {
@@ -138,15 +127,11 @@ const socketStream = new Writable
                   if(data !== undefined && data.features !== undefined && data.features[0] !== undefined)
                   {
                       socketIo.emit('tweet', tweet, data.features[0].geometry.coordinates[1], data.features[0].geometry.coordinates[0]);
-
                   }
               })
               .catch(function(err) {
                 console.log(err)
               });
-
-
-        //socketIo.emit('tweet', tweet);
         callback();
     }
 });

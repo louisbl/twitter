@@ -139,6 +139,7 @@
         });
     }
 
+    //clean all markers
     function setMapOnAll(map) {
         for (let i = 0; i < markers.length; i++) {
             markers[i].setMap(map);
@@ -151,7 +152,6 @@
 
     let socket = io('http://localhost:5000');
     socket.on('connected', function (data) {
-        console.log(data);
         socket.emit('client_connected', 'Client connecte');
     });
 
@@ -165,23 +165,18 @@
         markers = [];
 
         socket.emit('filtre', document.querySelector("#mot").value);
-        console.log(document.querySelector("#mot").value);
     });
 
     socket.on('error', function (data) {
         alert(data);
     })
 
+    //positionnement de chaque photo user du tweet sur une google map
     socket.on('tweet', function (data, latitude, longitude) {
-
-        console.log(data);
 
         if(latitude !== undefined && latitude !== null && data)
         {
-
             let location = {lat: latitude, lng: longitude}
-
-            console.log(data);
 
             let marker = new google.maps.Marker({
                 position: location,
@@ -194,6 +189,7 @@
 
             markers.push(marker);
 
+            //au clique affichage du tweet dans une petite popup en bas
             marker.addListener('click', function() {
 
                 document.querySelector(".titre").innerHTML = "Tweet";
